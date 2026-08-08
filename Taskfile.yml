@@ -3,9 +3,29 @@ version: "3"
 tasks:
   compile:
     cmds:
-      - mix deps.get
-      - MIX_ENV=prod mix release
-  run:
+      - MIX_ENV=prod mix release --compile --archives-check --deps-check --force
+      - cp -rvf ./burrito_out/ghosteditor_linux ./burrito_out/ghost-editor
+      - sudo cp -rvf ./burrito_out/ghost-editor /usr/local/bin/ghost-editor
+    sources:
+      - lib/**/*
+    generates:
+      - ./burrito_out/ghosteditor_linux
+      - ./burrito_out/ghost-editor
+    status:
+      - test -f burrito_out/ghosteditor_linux
+      - test -f burrito_out/ghost-editor
+
+  compile:cleanup:
     cmds:
-      - mix deps.get
-      - mix run --no-halt
+      - rm -rvf burrito_out
+      - rm -rvf ~/.local/share/.burrito
+
+  compile:run:
+    cmds:
+      - task: compile
+      - sudo ghost-editor
+
+  cleanup:
+    cmds:
+      - mix deps.clean
+      - rm -rvf _build

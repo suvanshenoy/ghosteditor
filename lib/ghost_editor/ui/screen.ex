@@ -35,10 +35,10 @@ defmodule GhostEditor.UI.Screen do
 
     element =
       cond do
-        File.dir?(data) || is_archived_file(data) ->
+        File.dir?(data) || archived_file?(data) ->
           files =
             cond do
-              is_archived_file(data) ->
+              archived_file?(data) ->
                 list_archived_files(data)
 
               true ->
@@ -58,6 +58,29 @@ defmodule GhostEditor.UI.Screen do
                     padding: 0
                   ) do
                     directory_tree(files)
+                  end
+                end
+              end
+            end
+          end
+
+        dump_file?(data) ->
+          view(bottom_bar: CursorBar.render(%{model | displays: %{cursor_bar: %{size: 2}}})) do
+            overlay(padding: 0) do
+              row do
+                menu
+
+                column(size: size) do
+                  panel(
+                    height: height + 2,
+                    border: %{color: @default_border_color},
+                    padding: 0
+                  ) do
+                    label(
+                      content: text <> "|" <> "#{data}",
+                      attributes: [:bold],
+                      color: @default_text_color
+                    )
                   end
                 end
               end
@@ -93,19 +116,13 @@ defmodule GhostEditor.UI.Screen do
     element
   end
 
-  defp is_archived_file(file_name) do
-    cond do
+  defp archived_file?(file_name),
+    do:
       Path.extname(file_name) == ".zip" || Path.extname(file_name) == ".tar" ||
-          Path.extname(file_name) == ".gz" ->
-        {Path.extname(file_name), true}
-
-      true ->
-        false
-    end
-  end
+        Path.extname(file_name) == ".gz"
 
   defp list_archived_files(file_name) do
-    {file_extension, _} = is_archived_file(file_name)
+    file_extension = Path.extname(file_name)
 
     case file_extension do
       ".zip" ->
@@ -126,27 +143,19 @@ defmodule GhostEditor.UI.Screen do
     end
   end
 
-  defp directory_tree(files) do
-    dirs = []
+  defp dump_file?(file_name), do: Path.extname(file_name) == ".dump"
 
+  defp directory_tree(files) do
     dirs =
       for file <- files do
-        file = String.split(file, "/")
-
-        for f <- file do
-          cond do
-            File.dir?(f) ->
-              dirs ++ f
-
-            true ->
-              dirs
-          end
+        if is_list(file) do
+          List.to_string(file) |> String.split("/")
+        else
+          String.split(file, "/")
         end
       end
 
     dirs = dirs |> List.flatten() |> Enum.uniq()
-
-    # raise dirs
 
     cond do
       Enum.count(dirs) == 1 ->
@@ -165,6 +174,6 @@ defmodule GhostEditor.UI.Screen do
             end
           end
         end
-      end
+    end
   end
 end
